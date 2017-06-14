@@ -45,6 +45,9 @@ class IntentService(object):
             lang = "en-us"
 
         utterances = message.data.get('utterances', '')
+        
+        # TODO: Incorporate the converse() mechanism from JarbasAI
+        # see https://github.com/MycroftAI/mycroft-core/pull/783/files
 
         best_intent = None
         for utterance in utterances:
