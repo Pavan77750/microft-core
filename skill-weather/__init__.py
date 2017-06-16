@@ -15,20 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with Mycroft Core.  If not, see <http://www.gnu.org/licenses/>.
 import time
+import math
 
 from adapt.intent import IntentBuilder
 from multi_key_dict import multi_key_dict
-from os.path import dirname
+from mycroft.api import Api
+from mycroft.messagebus.message import Message
+from mycroft.skills.core import MycroftSkill
+from mycroft.util.log import getLogger
 from pyowm import OWM
 from pyowm.webapi25.forecaster import Forecaster
 from pyowm.webapi25.forecastparser import ForecastParser
 from pyowm.webapi25.observationparser import ObservationParser
 from requests import HTTPError
-
-from mycroft.api import Api
-from mycroft.messagebus.message import Message
-from mycroft.skills.core import MycroftSkill
-from mycroft.util.log import getLogger
 
 __author__ = 'jdorleans'
 
@@ -85,7 +84,6 @@ class OWMApi(Api):
 class WeatherSkill(MycroftSkill):
     def __init__(self):
         super(WeatherSkill, self).__init__("WeatherSkill")
-        self.temperature = self.config.get('temperature')
         self.__init_owm()
         self.CODES = multi_key_dict()
         self.CODES['01d', '01n'] = 0
@@ -133,15 +131,6 @@ class WeatherSkill(MycroftSkill):
             weather = self.owm.weather_at_place(location).get_weather()
             data = self.__build_data_condition(pretty_location, weather)
 
-            # BUG:  OWM is commonly reporting incorrect high/low data in the
-            # "current" request.  So grab that from the forecast API call.
-            weather_forecast = self.owm.three_hours_forecast(
-                location).get_forecast().get_weathers()[0]
-            data_forecast = self.__build_data_condition(pretty_location,
-                                                        weather_forecast)
-            data["temp_min"] = data_forecast["temp_min"]
-            data["temp_max"] = data_forecast["temp_max"]
-
             weather_code = str(weather.get_weather_icon_name())
             img_code = self.CODES[weather_code]
             temp = data['temp_current']
@@ -151,7 +140,7 @@ class WeatherSkill(MycroftSkill):
             dialog_name = "current"
             if pretty_location == self.location_pretty:
                 dialog_name += ".local"
-            self.speak_dialog(dialog_name+".weather", data)
+            self.speak_dialog(dialog_name + ".weather", data)
 
             time.sleep(5)
             self.enclosure.activate_mouth_events()
@@ -216,7 +205,7 @@ class WeatherSkill(MycroftSkill):
                 city = location["city"]
                 state = city["state"]
                 return city["name"] + ", " + state["name"] + ", " + \
-                    state["country"]["name"], self.location_pretty
+                       state["country"]["name"], self.location_pretty
 
             return None
         except:
@@ -229,7 +218,7 @@ class WeatherSkill(MycroftSkill):
 
         data = {
             'location': location_pretty,
-            'scale': self.temperature,
+            'scale': self.__get_temperature_unit(),
             'condition': weather.get_detailed_status(),
             'temp_current': self.__get_temperature(weather, temp),
             'temp_min': self.__get_temperature(weather, temp_min),
@@ -237,8 +226,13 @@ class WeatherSkill(MycroftSkill):
         }
         return data
 
+    def __get_temperature_unit(self):
+        system_unit = self.config_core.get('system_unit')
+        return system_unit == "metric" and "celsius" or "fahrenheit"
+
     def __get_temperature(self, weather, key):
-        return str(int(round(weather.get_temperature(self.temperature)[key])))
+        unit = self.__get_temperature_unit()
+        return str(int(math.floor(weather.get_temperature(unit)[key])))
 
     def stop(self):
         pass
