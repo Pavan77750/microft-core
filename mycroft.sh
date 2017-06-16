@@ -10,6 +10,7 @@ while [ -h "$SOURCE" ]; do
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 SCRIPTS="$DIR/scripts"
+PADATIOUS_EXE="$DIR/padatious/build/src/padatious-mycroft"
 
 function screen-config {
   echo "
@@ -128,6 +129,10 @@ case "$1" in
   start-mycroft service
   start-mycroft skills
 
+  if [ -f "$PADATIOUS_EXE" ]; then
+    start-mycroft-custom padatious "$PADATIOUS_EXE" "$DIR"
+  fi
+
   case "$2" in
   "")
     start-mycroft voice
@@ -153,6 +158,7 @@ case "$1" in
   if [[ -n "$2" ]]; then usage-exit; fi
   stop-mycroft service
   stop-mycroft skills
+  stop-mycroft padatious
   stop-mycroft voice
   stop-mycroft cli
   ;;
