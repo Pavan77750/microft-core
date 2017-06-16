@@ -20,6 +20,7 @@ import abc
 import imp
 import time
 
+import operator
 import os.path
 import re
 import time
@@ -167,6 +168,8 @@ class MycroftSkill(object):
     Skills implementation.
     """
 
+    fallback_handlers = {}
+
     def __init__(self, name, emitter=None):
         self.name = name
         self.bind(emitter)
@@ -178,6 +181,23 @@ class MycroftSkill(object):
         self.log = getLogger(name)
         self.reload_skill = True
         self.events = []
+
+
+    @staticmethod
+    def on_intent_failure(message):
+        for _, handler in sorted(MycroftSkill.fallback_handlers.items(),
+                                 key=operator.itemgetter(0)):
+            if handler(message):
+                break
+
+
+    @staticmethod
+    def register_fallback(handler, priority):
+        while MycroftSkill.fallback_handlers.has_key(priority):
+            priority += 1
+
+        MycroftSkill.fallback_handlers[priority] = handler
+
 
     @property
     def location(self):
