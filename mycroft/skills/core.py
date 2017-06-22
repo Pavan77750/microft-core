@@ -83,6 +83,20 @@ def load_regex(basedir, emitter):
             load_regex_from_file(
                 join(basedir, regex_type), emitter)
 
+def load_padatious_intent(basedir, emitter):
+    """Used to load intents through padatious
+    TODO: Implement this feature, decide on name for padtious intent (padint?)
+
+    Args:
+        basedir(str): the location of the bottom directory for skills
+        emitter(object): message bus emitter
+
+    Notes:
+    """
+    for padint_type in os.listdir(basedir):
+        if padint_type.endswith(".intent"):
+            load_padint_from_file(
+                join(basedir, padint_type), emitter)
 
 def open_intent_envelope(message):
     intent_dict = message.data
