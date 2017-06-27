@@ -18,7 +18,7 @@ case $1 in
     "enclosure") SCRIPT=${TOP}/mycroft/client/enclosure/main.py ;;
     "wifi") SCRIPT=${TOP}/mycroft/client/wifisetup/main.py ;;
     "padatious") SCRIPT=${TOP}/mycroft/padatious/main.py ;;
-	*) echo "Usage: start.sh [service | skills | skill_container | voice | cli | audiotest| audioaccuracytest | collector | unittest | enclosure | sdkdoc | wifi]"; exit ;;
+	*) echo "Usage: start.sh [service | skills | skill_container | voice | cli | audiotest| audioaccuracytest | collector | unittest | enclosure | sdkdoc | wifi | padatious]"; exit ;;
 esac
 
 echo "Starting $@"
