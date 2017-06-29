@@ -89,7 +89,7 @@ class AdaptEngine(IntentEngine):
                 "lang": lang
             }))
 
-    def try_register_intent(self, request, paramters ={}):
+    def try_register_intent(self, request, parameters ={}):
         intent = open_intent_envelope(request)
         self.engine.register_intent_parser(intent)
         return intent
@@ -106,6 +106,7 @@ class AdaptEngine(IntentEngine):
                 start_concept, end_concept, alias_of=alias_of)
 
     def handle_register_intent(self, message):
+        """TODO: Remove once certain no issues"""
         intent = open_intent_envelope(message)
         self.engine.register_intent_parser(intent)
 
