@@ -31,7 +31,7 @@ from mycroft.messagebus.client.ws import WebsocketClient
 from mycroft.messagebus.message import Message
 from mycroft.skills.core import load_skill, create_skill_descriptor, \
     MainModule, SKILLS_DIR, MycroftSkill
-from mycroft.skills.intent_service import IntentService
+from mycroft.engines.adapt_engine import AdaptEngine
 from mycroft.util import connected
 from mycroft.util.log import getLogger
 from mycroft.api import is_paired
@@ -122,7 +122,7 @@ def _load_skills():
 
     # Create the Intent manager, which converts utterances to intents
     # This is the heart of the voice invoked skill system
-    IntentService(ws)
+    AdaptEngine(ws)
 
     # Create a thread that monitors the loaded skills, looking for updates
     skill_reload_thread = Timer(0, _watch_skills)

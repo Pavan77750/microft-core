@@ -40,6 +40,7 @@ class Message(object):
         return Message(obj.get('type'), obj.get('data'), obj.get('context'))
 
     def reply(self, type, data, context={}):
+        # type: (object, object, object) -> object
         new_context = self.context if self.context else {}
         for key in context:
             new_context[key] = context[key]
