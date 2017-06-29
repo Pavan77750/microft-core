@@ -23,8 +23,9 @@
 #
 from mycroft.engines.intent_engine import make_namespaced
 from mycroft.engines.padatious_engine import PadatiousEngine
+from mycroft.engines.padatious_engine import AdaptEngine
 
-engine_classes = [PadatiousEngine]
+engine_classes = [PadatiousEngine, AdaptEngine]
 
 
 class IntentManager:
