@@ -1,5 +1,22 @@
 #!/bin/bash
-#mycroft-use
+# Copyright 2016 Mycroft AI, Inc.
+#
+# This file is part of Mycroft Core.
+#
+# Mycroft Core is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Mycroft Core is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Mycroft Core.  If not, see <http://www.gnu.org/licenses/>.
+
+# this script is for the Mark 1 and Picroft units
 
 user=$(whoami)
 #Build being changed to
@@ -43,10 +60,82 @@ function change_build {
         sudo apt-get install mycroft-core -y
 }
 
+function stable_to_unstable_server {
+        identity_path=/home/mycroft/.mycroft/identity/
+        conf_path=/home/mycroft/.mycroft/
+
+        # point to test server
+        echo "changing /home/mycroft/.mycroft.conf to point to test server api-test.mycroft.ai and saving the stable state to mycroft.conf.stable"
+        if [ -f ${conf_path}mycroft.conf ]; then    
+            cp ${conf_path}mycroft.conf ${conf_path}mycroft.conf.stable
+        else
+            echo "could not find mycroft.conf, was it deleted?"
+        fi
+        if [ -f ${conf_path}mycroft.conf.unstable ]; then
+                cp ${conf_path}mycroft.conf.unstable ${conf_path}mycroft.conf
+        else
+                rm -r ${conf_path}mycroft.conf
+                echo '{"server": {"url":"https://api-test.mycroft.ai", "version":"v1", "update":true, "metrics":false }}' $(cat ${conf_path}mycroft.conf.stable) | jq -s add > ${conf_path}mycroft.conf
+        fi
+
+        # saving identity2.json to stable state
+        echo "pointing /home/mycroft/.mycroft/identity2.json to unstable and saving stable state to identity2.json.stable"
+        if [ -f ${identity_path}identity2.json ]; then 
+            mv ${identity_path}identity2.json ${identity_path}identity2.json.stable
+        fi
+        if [ -f /home/mycroft/.mycroft/identity/identity2.json.unstable ]; then
+                cp ${identity_path}identity2.json.unstable ${identity_path}identity2.json
+        else
+                echo "This seems to be your first time switching to unstable. You will need to go to home-test.mycroft.ai to pair on unstable"
+        fi
+
+		service mycroft-skills restart
+}
+
+function unstable_to_stable_server {
+	    # switching from unstable -> stable
+        identity_path=/home/mycroft/.mycroft/identity/
+        conf_path=/home/mycroft/.mycroft/
+
+        # point api to production server
+        echo "changing /home/mycroft/.mycroft.conf to point to prod server api.mycroft.ai and saving the unstable state to mycroft.conf.unstable"
+        if [ -f ${conf_path}mycroft.conf ]; then
+            echo '{"server": {"url":"https://api-test.mycroft.ai", "version":"v1", "update":true, "metrics":false }}' $(cat ${conf_path}mycroft.conf) | jq -s add > ${conf_path}mycroft.conf.unstable
+        else
+            echo "could not find mycroft.conf, was it deleted?"
+        fi
+        if [ -f ${conf_path}mycroft.conf.stable ]; then
+            cp ${conf_path}mycroft.conf.stable ${conf_path}mycroft.conf
+        else 
+            echo "could not find mycroft.conf.stable, was it deleted?, an easy fix would be to copy mycroft.conf.unstable to mycroft.conf but remove the server field"
+        fi
+        
+        # saving identity2.json into unstbale state, then copying identity2.json.stable to identity2.json
+        echo "pointing /home/mycroft/.mycroft/identity2.json to stable and saving unstable state to identity2.json.unstable"
+        if [ -f ${identity_path}identity2.json ]; then     
+            mv ${identity_path}identity2.json ${identity_path}identity2.json.unstable
+        fi
+        if [ -f ${identity_path}identity2.json.stable ]; then
+            cp ${identity_path}identity2.json.stable ${identity_path}identity2.json	
+        else
+            echo "Can not find identity2.json.stable, was it deleted? You may need to repair at home.mycroft.ai"
+        fi
+            
+	    service mycroft-skills restart
+}
+
+# make sure user is running as sudo first
+if [ "$EUID" -ne 0 ]
+    then echo "Please run as sudo to allow mycroft.conf to point to stable production server"
+    exit
+fi
 if [ "${change_to}" = "unstable" ]; then
         echo "Switching to unstable build..."
         if [ "${current_pkg}" = "${stable_pkg}" ]; then
                 change_build "${unstable_pkg}"
+                stable_to_unstable_server
+        else
+            echo "already on unstable"
         fi
         if [ -f /etc/init.d/mycroft-messagebus.original ]; then
                 original_init
@@ -56,6 +145,9 @@ elif [ "${change_to}" = "stable" ]; then
         if [ "${current_pkg}" = "${unstable_pkg}" ]; then
                 sudo apt-get remove mycroft-core -y
                 change_build "${stable_pkg}"
+                unstable_to_stable_server
+        else 
+            echo "already on stable"
         fi
         if [ -f /etc/init.d/mycroft-skills.original ]; then
                 original_init
@@ -111,8 +203,20 @@ elif [ "${change_to}" = "github" ]; then
 	fi
 #	sudo reboot
 else
-        echo "mycroft-use [stable | unstable | github]"
-        echo "  Default path for github is /home/<user>/mycroft-core"
-        echo "  Set custom path to mycroft-core checkout with second argument."
-        echo "          ex. mycroft-use github /home/bill/projects/mycroft/<repository>" 
+        echo "usage: mycroft-use.sh [stable | unstable | github [<path>]]"
+	echo "Switch between mycroft-core install methods"
+	echo
+	echo "Options:"
+	echo "  stable           switch to the current debian package"
+	echo "  unstable         switch to the unstable debian package"
+	echo "  github [<path>]  switch to the mycroft-core/dev github repo"
+	echo
+	echo "Params:"
+        echo "  <path>  default for github installs is /home/<user>/mycroft-core"
+	echo
+        echo "Examples:"
+        echo "  mycroft-use.sh stable"
+        echo "  mycroft-use.sh unstable"
+        echo "  mycroft-use.sh github"
+        echo "  mycroft-use.sh github /home/bill/projects/mycroft/custom"
 fi
