@@ -49,6 +49,8 @@ from mycroft.util.log import getLogger
 logger = getLogger(__name__)
 __author__ = 'seanfitz'
 
+p = None
+
 
 class MutableStream(object):
     def __init__(self, wrapped_stream, format, muted=False):
@@ -109,7 +111,7 @@ class MutableMicrophone(Microphone):
     def __enter__(self):
         assert self.stream is None, \
             "This audio source is already inside a context manager"
-        self.audio = pyaudio.PyAudio()
+        self.audio = p
         self.stream = MutableStream(self.audio.open(
             input_device_index=self.device_index, channels=1,
             format=self.format, rate=self.SAMPLE_RATE,
@@ -178,7 +180,9 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
 
         speech_recognition.Recognizer.__init__(self)
         self.wake_word_recognizer = wake_word_recognizer
-        self.audio = pyaudio.PyAudio()
+        global p
+        p = pyaudio.PyAudio()
+        self.audio = p
         self.multiplier = listener_config.get('multiplier')
         self.energy_ratio = listener_config.get('energy_ratio')
         # check the config for the flag to save wake words.
@@ -250,7 +254,9 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
 
         phrase_complete = False
         while num_chunks < max_chunks and not phrase_complete:
+            logger.info("recording chunks")
             chunk = self.record_sound_chunk(source)
+            logger.info("recorded one chunk")
             byte_data += chunk
             num_chunks += 1
 
@@ -504,9 +510,11 @@ class ResponsiveRecognizer(speech_recognition.Recognizer):
                 self.config.get('sounds').get('start_listening'))
             if file:
                 play_wav(file)
-
+        logger.debug("start recording phrase")
         frame_data = self._record_phrase(source, sec_per_buffer)
+        logger.debug("stop recording phrase")
         audio_data = self._create_audio_data(frame_data, source)
+        logger.info(audio_data)
         emitter.emit("recognizer_loop:record_end")
         if self.save_utterances:
             logger.info("Recording utterance")

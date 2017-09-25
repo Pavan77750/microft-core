@@ -33,6 +33,7 @@ from mycroft.session import SessionManager
 from mycroft.stt import STTFactory
 from mycroft.util.log import getLogger
 from mycroft.client.speech.hotword_factory import HotWordFactory
+from mycroft.client.speech.aawscd import get_aawscd_device_id
 
 LOG = getLogger(__name__)
 
@@ -202,8 +203,9 @@ class RecognizerLoop(EventEmitter):
         self.lang = config.get('lang')
         self.config = config.get('listener')
         rate = self.config.get('sample_rate')
-        device_index = self.config.get('device_index')
-
+        # device_index = self.config.get('device_index')
+        # device index for aaw
+        device_index = get_aawscd_device_id()
         self.microphone = MutableMicrophone(device_index, rate,
                                             mute=self.mute_calls > 0)
         # FIXME - channels are not been used

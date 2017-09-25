@@ -28,6 +28,7 @@ from mycroft.messagebus.client.ws import WebsocketClient
 from mycroft.messagebus.message import Message
 from mycroft.util.log import getLogger
 from mycroft.lock import Lock as PIDLock  # Create/Support PID locking file
+from mycroft.client.speech.aawscd import stop_aawscd, start_aawscd
 
 logger = getLogger("SpeechClient")
 ws = None
@@ -137,6 +138,7 @@ def main():
     ws = WebsocketClient()
     config = ConfigurationManager.get()
     ConfigurationManager.init(ws)
+    stop_aawscd()
     loop = RecognizerLoop()
     loop.on('recognizer_loop:utterance', handle_utterance)
     loop.on('speak', handle_speak)
@@ -162,6 +164,8 @@ def main():
         loop.run()
     except KeyboardInterrupt, e:
         logger.exception(e)
+        logger.info("shutting down recognizer loop thread")
+        loop.stop()
         sys.exit()
 
 

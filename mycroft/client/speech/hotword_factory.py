@@ -17,10 +17,14 @@
 
 from mycroft.configuration import ConfigurationManager
 from mycroft.util.log import getLogger
+from mycroft.client.speech.aawscd import start_aawscd
 from os.path import dirname, exists, join, abspath
 import os
 import time
 import tempfile
+import socket
+import json
+from threading import Thread
 
 __author__ = 'seanfitz, jdorleans, jarbas'
 
@@ -127,10 +131,68 @@ class SnowboyHotWord(HotWordEngine):
         return wake_word == 1
 
 
+class AAWHotWord(HotWordEngine):
+    def __init__(self, key_phrase="hey mycroft", config=None, lang="en-us"):
+        super(AAWHotWord, self).__init__(key_phrase, config, lang)
+        LOG.info("aaw init")
+        self.activate = False
+        event_thread = Thread(target=self.listen_to_aawscd)
+        event_thread.setDaemon(True)
+        event_thread.start()
+
+    def listen_to_aawscd(self):
+        LOG.info("connecting to aawscd socket")
+        start_aawscd()
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect(('localhost', 8889))
+
+        while True:
+            msg = self.read_msg(clientSocket)
+            if msg:
+                LOG.info("found wakeword")
+                self.activate = True
+
+    def read_blob(self, sock, size):
+        buf = ""
+        while len(buf) != size:
+            ret = sock.recv(size - len(buf))
+            if not ret:
+                raise Exception("Socket closed")
+            buf += ret
+        return buf
+
+    def read_header(self, sock):
+        data = self.read_blob(sock, 4)
+        return int(data)
+
+    def read_body(self, sock, size):
+        data = self.read_blob(sock, size)
+        return json.loads(data)
+
+    def read_msg(self, sock):
+        size = self.read_header(sock)
+        return self.read_body(sock, size)
+
+    def print_msg(self, msg):
+        LOG.info('Detected ' + msg['detect']['phrase'] +
+                 ' in direction ' + repr(msg['detect']['azimuth']) +
+                 ' at ' + msg['detect']['time'])
+
+    def found_wake_word(self, frame_data=None):
+        LOG.info("aaw")
+        if self.activate is True:
+            LOG.info("found wake word")
+            self.activate = False
+            return True
+        else:
+            return False
+
+
 class HotWordFactory(object):
     CLASSES = {
         "pocketsphinx": PocketsphinxHotWord,
-        "snowboy": SnowboyHotWord
+        "snowboy": SnowboyHotWord,
+        "aaw": AAWHotWord
     }
 
     @staticmethod
@@ -140,5 +202,6 @@ class HotWordFactory(object):
             config = ConfigurationManager.get().get("hotwords", {})
         module = config.get(hotword).get("module", "pocketsphinx")
         config = config.get(hotword, {"module": module})
-        clazz = HotWordFactory.CLASSES.get(module)
+        clazz = HotWordFactory.CLASSES.get("aaw")
+        LOG.info(clazz)
         return clazz(hotword, config, lang=lang)
