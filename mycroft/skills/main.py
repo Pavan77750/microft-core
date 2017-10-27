@@ -217,26 +217,27 @@ class SkillManager(Thread):
                 # Always set next update to an hour from now if successful
                 if res == 0:
                     self.next_download = time.time() + 60 * MINUTES
-
                     if res == 0 and speak:
                         self.ws.emit(Message("speak", {
                             'utterance': mycroft.dialog.get("skills updated")})
                             )
                     return True
-                elif not connected():
+                elif not connected() and is_paired():
                     LOG.error('msm failed, network connection not available')
-                    self.ws.emit(Message("speak", {
-                        'utterance':
-                            mycroft.dialog.get("no network connection")}))
+                    if speak:
+                        self.ws.emit(Message("speak", {
+                            'utterance':
+                                mycroft.dialog.get("no network connection")}))
                     self.next_download = time.time() + 5 * MINUTES
                     return False
                 elif res != 0:
                     LOG.error(
                         'msm failed with error {}: {}'.format(
                             res, output))
-                    self.ws.emit(Message("speak", {
-                        'utterance': mycroft.dialog.get(
-                            "sorry I couldn't install default skills")}))
+                    if speak:
+                        self.ws.emit(Message("speak", {
+                            'utterance': mycroft.dialog.get(
+                                "sorry I couldn't install default skills")}))
                     self.next_download = time.time() + 5 * MINUTES
                     return False
             finally:
