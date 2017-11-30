@@ -42,7 +42,7 @@ function help() {
 }
 
 function process-running() {
-    if [[ $( ps aux | grep "[p]ython .*${1}/main.py" ) ]] ; then
+    if [[ $( ps aux | grep "[p]ython3 .*${1}/main.py" ) ]] ; then
         return 0
     else
         return 1
@@ -52,7 +52,7 @@ function process-running() {
 function end-process() {
 
     if process-running $1 ; then
-        pid=$( ps aux | grep "[p]ython .*${1}/main.py" | awk '{print $2}' )
+        pid=$( ps aux | grep "[p]ython3 .*${1}/main.py" | awk '{print $2}' )
         kill ${pid}
 
         c=1
@@ -99,7 +99,6 @@ case ${OPT} in
   "voice")
     end-process speech
     ;;
-
 
   *)
     help

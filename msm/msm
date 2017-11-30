@@ -18,7 +18,7 @@ RED='\033[0;31m'
 NOCOLOR='\033[0m'
 GREEN='\033[0;32m'
 
-
+pip="python3 -m pip"
 script=${0}
 script=${script##*/}
 
@@ -337,7 +337,7 @@ function install() {
       fi
     fi
 
-    # If the skill has a requirements.txt, pip install them
+    # If the skill has a requirements.txt, $pip install them
     run_pip "${name}"
     rc=$?
     if [[ ${rc} -gt 0 ]] ; then
@@ -366,14 +366,14 @@ function run_pip() {
       echo "  Installing requirements..."
       if [[ "${picroft_mk1}" == "false" ]]; then
         if [[ "${VIRTUAL_ENV}" =~ .mycroft$ ]] ; then
-          if ! pip install -r requirements.txt ; then
+          if ! $pip install -r requirements.txt ; then
             echo "ERROR: Unable to install requirements for skill '${name}'"
             send_install_fail "${name}" 121
             return 121
           fi
         else
           if workon mycroft ; then
-            if ! pip install -r requirements.txt ; then
+            if ! $pip install -r requirements.txt ; then
               echo "ERROR: Unable to install requirements for skill '${name}'"
               deactivate mycroft
               send_install_fail "${name}" 121
@@ -386,7 +386,7 @@ function run_pip() {
           fi
         fi
       else
-        if ! sudo pip install -r requirements.txt ; then
+        if ! sudo $pip install -r requirements.txt ; then
           echo "ERROR: Unable to install requirements for '${name}', it may not work"
           send_install_fail "${name}" 121
           return 121

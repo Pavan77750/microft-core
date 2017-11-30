@@ -91,11 +91,11 @@ install_deps() {
     fi
 
     if found_exe apt-get; then
-        $SUDO apt-get install -y git python python-dev python-setuptools python-virtualenv python-gobject-dev virtualenvwrapper libtool libffi-dev libssl-dev autoconf automake bison swig libglib2.0-dev s3cmd portaudio19-dev mpg123 screen flac curl libicu-dev pkg-config automake libjpeg-dev libfann-dev g++ jq
+        $SUDO apt-get install -y git python3 python3-dev python3-setuptools python3-virtualenv python3-gobject-dev virtualenvwrapper libtool libffi-dev libssl-dev autoconf automake bison swig libglib2.0-dev s3cmd portaudio19-dev mpg123 screen flac curl libicu-dev pkg-config automake libjpeg-dev libfann-dev g++ jq
     elif found_exe pacman; then
-        $SUDO pacman -S --needed git python2 python2-pip python2-setuptools python2-virtualenv python2-gobject python-virtualenvwrapper libtool libffi openssl autoconf bison swig glib2 s3cmd portaudio mpg123 screen flac curl pkg-config icu automake libjpeg-turbo base-devel jq
+        $SUDO pacman -S --needed git python3 python3-pip python3-setuptools python3-virtualenv python3-gobject python3-virtualenvwrapper libtool libffi openssl autoconf bison swig glib2 s3cmd portaudio mpg123 screen flac curl pkg-config icu automake libjpeg-turbo base-devel jq
     elif found_exe dnf; then
-        $SUDO dnf install -y git python python-devel python-pip python-setuptools python-virtualenv pygobject2-devel python-virtualenvwrapper libtool libffi-devel openssl-devel autoconf bison swig glib2-devel s3cmd portaudio-devel mpg123 mpg123-plugins-pulseaudio screen curl pkgconfig libicu-devel automake libjpeg-turbo-devel fann-devel gcc-c++ redhat-rpm-config jq
+        $SUDO dnf install -y git python3 python3-devel python3-pip python3-setuptools python3-virtualenv pygobject2-devel python3-virtualenvwrapper libtool libffi-devel openssl-devel autoconf bison swig glib2-devel s3cmd portaudio-devel mpg123 mpg123-plugins-pulseaudio screen curl pkgconfig libicu-devel automake libjpeg-turbo-devel fann-devel gcc-c++ redhat-rpm-config jq
     else
         if found_exe tput; then
 			green="$(tput setaf 2)"
@@ -104,7 +104,7 @@ install_deps() {
     	fi
     	echo
         echo "${green}Could not find package manager"
-        echo "${green}Make sure to manually install:${blue} git python 2 python-setuptools python-virtualenv pygobject virtualenvwrapper libtool libffi openssl autoconf bison swig glib2.0 s3cmd portaudio19 mpg123 flac curl fann g++"
+        echo "${green}Make sure to manually install:${blue} git python3 python3-setuptools python3-virtualenv pygobject virtualenvwrapper libtool libffi openssl autoconf bison swig glib2.0 s3cmd portaudio19 mpg123 flac curl fann g++"
         echo $reset
     fi
 }
@@ -150,28 +150,14 @@ fi
 # create virtualenv, consistent with virtualenv-wrapper conventions
 if [ ! -d "${VIRTUALENV_ROOT}" ]; then
    mkdir -p $(dirname "${VIRTUALENV_ROOT}")
-  virtualenv -p python2.7 "${VIRTUALENV_ROOT}"
+   python3 -m virtualenv "${VIRTUALENV_ROOT}"
 fi
 source "${VIRTUALENV_ROOT}/bin/activate"
 cd "${TOP}"
 easy_install pip==7.1.2 # force version of pip
 pip install --upgrade virtualenv
 
-# Add mycroft-core to the virtualenv path
-# (This is equivalent to typing 'add2virtualenv $TOP', except
-# you can't invoke that shell function from inside a script)
-VENV_PATH_FILE="${VIRTUALENV_ROOT}/lib/python2.7/site-packages/_virtualenv_path_extensions.pth"
-if [ ! -f "$VENV_PATH_FILE" ] ; then
-    echo "import sys; sys.__plen = len(sys.path)" > "$VENV_PATH_FILE" || return 1
-    echo "import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)" >> "$VENV_PATH_FILE" || return 1
-fi
-
-if ! grep -q "mycroft-core" $VENV_PATH_FILE; then
-   echo "Adding mycroft-core to virtualenv path"
-   sed -i.tmp '1 a\
-'"$TOP"'
-' "${VENV_PATH_FILE}"
-fi
+python3 mycroft-base-setup.py develop
 
 # install requirements (except pocketsphinx)
 # removing the pip2 explicit usage here for consistency with the above use.
